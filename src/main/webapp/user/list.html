@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<!--suppress ALL-->
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>新闻管理页面</title>
+    <link rel="stylesheet" th:href="@{/static/layui/2.5.4/css/layui.css}" media="all" />
+    <style>
+        .top{
+            display: inline-block;
+            margin-top: 24px;
+            margin-bottom: 0px;
+        }
+        .top1{
+            position:absolute;
+            left:545px;
+            top:24px;
+        }
+    </style>
+</head>
+<body>
+<blockquote class="layui-elem-quote quoteBox">
+    <div class="layui-form">
+        <div class="layui-inline">
+            <select name="newsType" id="newsType">
+                <option value="">选择新闻类型</option>
+                <option  th:each="c:${typesList}"  th:value="${c.typeName}" th:text="${c.typeName}">普通类型</option>
+            </select>
+        </div>
+        <div class="layui-inline">
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" name="title" id="title"  placeholder="搜索新闻"/>
+            </div>
+            <div lay-submit lay-filter="query" id="query" class="layui-btn">查询</div>
+        </div>
+    </div>
+</blockquote>
+<table class="layui-hide" id="demo" lay-filter="test"></table>
+<script type="text/html" id="barDemo">
+    <a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="detail">详情</a>
+    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+</script>
+</body>
+<script th:src="@{/static/layui/2.5.4/lay/modules/jquery.js}"></script>
+<script type="text/javascript" th:src="@{/static/layui/2.5.4/layui.js}"></script>
+<script>
+    layui.config({
+        version: '1574611511008' //为了更新 js 缓存，可忽略
+    });
+
+    layui.use(['laydate', 'laypage', 'layer', 'table', 'upload', 'element'], function(){
+        var laydate = layui.laydate //日期
+            ,laypage = layui.laypage //分页
+            ,layer = layui.layer //弹层
+            ,table = layui.table //表格
+            ,upload = layui.upload //上传
+            ,element = layui.element //元素操作
+        var $ = layui.jquery;
+
+        //监听Tab切换
+        element.on('tab(demo)', function(data){
+            layer.tips('切换了 '+ data.index +'：'+ this.innerHTML, this, {
+                tips: 1
+            });
+        });
+
+        //执行一个 table 实例
+        var coursetable =table.render({
+            elem: '#demo'
+            ,url: '/admin/news/list' //数据接口
+            ,title: '新闻表'
+            ,page: true //开启分页
+            ,toolbar: 'default' //开启工具栏，此处显示默认图标，可以自定义模板，详见文档
+            ,cols: [
+                [ //表头
+                    {type: 'checkbox', fixed: 'left'}
+                    ,{type: 'numbers', title: '序号', width:70}
+                    ,{field: 'title', title: '标题', align:'center', width:200}
+                    ,{field: 'newsType', title: '新闻类型', width: 160, align:'center', totalRow: true}
+                    ,{field: 'author', title: '作者', width:120, align:'center', totalRow: true}
+                    ,{field: 'publishTime', title: '发布时间', width:180, align:'center', totalRow: true,
+                    templet:function (data) { return dateToStr(data.publishTime);}}
+                    ,{field: 'viewCount', title: '浏览次数', width: 150, align:'center', sort: true, totalRow: true}
+                    ,{field: 'deleted', title: '是否删除', width: 120, align:'center', sort: true, totalRow: true,
+                    templet:function (data) { return statusToStr(data.deleted);}}
+                    ,{fixed: 'right',title: '操作', width: 200, align:'center', toolbar: '#barDemo'}
+            ]
+            ]
+            ,id: "demoId"
+
+        });
+
+        $('#query').click(function () {
+            var newsType = $('#newsType').val();
+            var title = $('#title').val();
+            coursetable.reload({
+                url: '/admin/news/list',
+                where:{
+                    newsType : newsType,
+                    title : title,
+                }
+            });
+        });
+
+        //监听头工具栏事件
+        table.on('toolbar(test)', function(obj){
+            var checkStatus = table.checkStatus(obj.config.id)
+                ,data = checkStatus.data; //获取选中的数据
+            switch(obj.event){
+                case 'add':
+                    layer.open({
+                        //layer提供了5种层类型。可传入的值有：0（信息框，默认）1（页面层）2（iframe层）3（加载层）4（tips层）
+                        type:2,
+                        title:"添加新闻",
+                        shade: 0.5,//遮罩
+                        shadeClose:true,
+                        area: ['100%','100%'],
+                        content:'/admin/news/input',
+                        btn:['<div class="layui-icon layui-icon-close">取消</div>']
+                    });
+                    break;
+                case 'update':
+                    if (data.length === 0) {
+                        layer.msg('请选择一行');
+                    } else if (data.length > 1) {
+                        layer.msg('只能同时编辑一个');
+                    } else {
+                    layer.open({
+                            //layer提供了5种层类型。可传入的值有：0（信息框，默认）1（页面层）2（iframe层）3（加载层）4（tips层）
+                            type:2,
+                            title:"修改新闻",
+                            shade: 0.5,//遮罩
+                            shadeClose:true,
+                            btn:['<div class="layui-icon layui-icon-close">取消</div>'],
+                            area: ['100%','100%'],
+                            content:'/admin/news/input?id='+checkStatus.data[0].id,
+                        });
+                    }
+                    break;
+                case 'delete':
+                    if (data.length === 0) {
+                        layer.msg('请选择一行');
+                    } else {
+                        layer.confirm('确定删除全部吗?', {btn: ['确定删除', '取消']}, function (index) {
+                            var arrayId = new Array();
+                            data.forEach((item,index,data) => {
+                                arrayId[index] = item.id;
+                            });
+                            var result = $.ajax({
+                                url : '/admin/news/deleteAll',
+                                data: {ids:JSON.stringify(arrayId)},
+                                dateType:'json',
+                                //强调内容类型
+                                contentType:'application/json;charsetset=UTF-8',
+                                async : false,   //同步请求
+                            });
+                            if(result.responseText >= 1){
+                                layer.msg("删除成功");
+                                coursetable.reload({
+                                    url: '/admin/news/list',
+                                });
+                            }else{
+                                console.log(result.responseText);
+                                layer.msg("删除失败");
+                            }
+                        });
+                    }
+                    break;
+            };
+        });
+
+        //监听行工具事件
+        table.on('tool(test)', function(obj){ //注：tool 是工具条事件名，test 是 table 原始容器的属性 lay-filter="对应的值"
+            var data = obj.data //获得当前行数据
+                ,layEvent = obj.event; //获得 lay-event 对应的值
+            if(layEvent === 'detail'){
+                layer.open({
+                    //layer提供了5种层类型。可传入的值有：0（信息框，默认）1（页面层）2（iframe层）3（加载层）4（tips层）
+                    type:2,
+                    title:"查看新闻",
+                    shade: 0.5,//遮罩
+                    shadeClose:true,
+                    btn:['<div class="layui-icon layui-icon-close">取消</div>'],
+                    area: ['100%','100%'],
+                    content:'/admin/news/detailed?id='+data.id,
+                });
+            } else if(layEvent === 'del'){
+                layer.confirm('确定删除吗?', {btn: ['确定删除', '取消']}, function (index) {
+                    var result = $.ajax({
+                        url : '/admin/news/delete',
+                        data: {id:data.id},
+                        dateType:'json',
+                        //强调内容类型
+                        contentType:'application/json;charsetset=UTF-8',
+                        async : false,   //同步请求
+                    });
+                    if(result.responseText == '1'){
+                        layer.msg("删除成功");
+                        coursetable.reload({
+                            url: '/admin/news/list',
+                        });
+                    }else{
+                        console.log(result.responseText);
+                        layer.msg("删除失败");
+                    }
+                });
+            } else if(layEvent === 'edit'){
+                layer.open({
+                    //layer提供了5种层类型。可传入的值有：0（信息框，默认）1（页面层）2（iframe层）3（加载层）4（tips层）
+                    type:2,
+                    title:"修改新闻",
+                    shade: 0.5,//遮罩
+                    shadeClose:true,
+                    btn:['<div class="layui-icon layui-icon-close">取消</div>'],
+                    area: ['100%','100%'],
+                    content:'/admin/news/input?id='+data.id,
+                });
+
+            }
+        });
+
+        //分页
+        laypage.render({
+            elem: 'pageDemo' //分页容器的id
+            ,count: 100 //总页数
+            ,skin: '#1E9FFF' //自定义选中色值
+            //,skip: true //开启跳页
+            ,jump: function(obj, first){
+                if(!first){
+                    layer.msg('第'+ obj.curr +'页', {offset: 'b'});
+                }
+            }
+        });
+
+        //上传
+        upload.render({
+            elem: '#uploadDemo'
+            ,url: '' //上传接口
+            ,done: function(res){
+                console.log(res)
+            }
+        });
+    });
+
+    //时间传进来获取时间戳进行处理后返回输出
+    function dateToStr(lastLoginTim) {
+        //console.log(lastLoginTim);
+        if(lastLoginTim == null){
+            return 0;
+        };
+        var time = new Date(lastLoginTim);
+        // console.log(lastLoginTim);
+        var y = time.getFullYear();
+        var M = time.getMonth() + 1;
+        M = M < 10 ? ("0" + M) : M;
+        var d = time.getDate();
+        d = d < 10 ? ("0" + d) : d;
+        var h = time.getHours();
+        h = h < 10 ? ("0" + h) : h;
+        var m = time.getMinutes();
+        m = m < 10 ? ("0" + m) : m;
+        var s = time.getSeconds();
+        s = s < 10 ? ("0" + s) : s;
+        var str = y + "-" + M + "-" + d + " " + h + ":" + m + ":" + s;
+        return str;
+    };
+    //新闻删除状态字符串化
+    function statusToStr(status){
+        if(status === 0){
+            return "未删除";
+        }
+        return "已删除";
+    }
+
+
+
+
+
+</script>
+</html>

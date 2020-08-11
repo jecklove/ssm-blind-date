@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<!--suppress ALL-->
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>新闻编辑</title>
+    <link rel="stylesheet" th:href="@{/static/layui/2.5.4/css/layui.css}" media="all" />
+    <style>
+        .top{
+            display: block;
+        }
+        .layui-quote-nm{
+             border-style: none;
+        }
+        #test3,#test2,#test6{
+            margin-left: 110px;
+        }
+
+    </style>
+</head>
+<body>
+        <form class="layui-form" id="userForm" enctype="multipart/form-data">
+            <br>
+            <div class="layui-form-item">
+                <label class="layui-form-label">新闻标题:</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="title" class="layui-input" th:value="${news?.title}" lay-verify="required"/>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">新闻类型:</label>
+                <div class="layui-input-inline">
+                    <select class="layui-input top" name="newsType" lay-verify="required">
+                        <option value="">-- 请选择 --</option>
+                        <option  th:each="c:${typesList}"  th:value="${c.typeName}" th:text="${c.typeName}" th:selected="${news?.newsType != c.typeName}?null:${news?.newsType}">普通职称</option>
+                    </select>
+                    <input type="hidden" name="uuid" th:value="${news?.uuid}"/>
+                    <input type="hidden" name="id" th:value="${news?.id}"/>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">作者:</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="author" class="layui-input" th:value="${news?.author}" lay-verify="required"/>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">信息来源:</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="infoSource" class="layui-input" th:value="${news?.infoSource}" lay-verify="required"/>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">摘要:</label>
+                <textarea style="width: 530px; height: 51px;" name="summary" class="layui-input" th:text="${news?.summary}" lay-verify="required"></textarea>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">新闻内容</label>
+                <div class="layui-input-block">
+                    <textarea class="layui-textarea layui-hide" name="content" lay-verify="content" id="news_content" th:utext="${news?.content}"></textarea>
+                </div>
+            </div>
+            <div class="layui-form-item" style="height: 50px">
+                <label class="layui-form-label">主图说明:</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="imageMemo" class="layui-input" th:value="${news?.imageMemo}" lay-verify="required"/>
+                </div>
+                <div class="layui-upload">
+                    <button type="button" class="layui-btn" id="test2">上传图片</button>
+                    <blockquote class="layui-elem-quote layui-quote-nm" style="margin-top: 10px;">
+                        <div class="layui-upload-list" id="demoList"></div>
+                    </blockquote>
+                </div>
+            </div>
+            <div class="layui-form-item" style="height: 50px">
+                <label class="layui-form-label">视频说明:</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="videoDesc" class="layui-input" th:value="${news?.videoDesc}" lay-verify="required"/>
+                </div>
+                <div class="layui-upload">
+                    <button type="button" class="layui-btn" id="test3">上传视频</button>
+                    <blockquote class="layui-elem-quote layui-quote-nm" style="margin-top: 10px;">
+                        <div class="layui-upload-list" id="demoList3"></div>
+                    </blockquote>
+                </div>
+            </div>
+            <div class="layui-form-item" style="height: 50px">
+                <label class="layui-form-label">添加附件:</label>
+                <div class="layui-input-inline">
+                    <input type="text"  class="layui-input"/>
+                </div>
+                <div class="layui-upload">
+                    <button type="button" class="layui-btn" id="test6">添加附件</button>
+                    <blockquote class="layui-elem-quote layui-quote-nm" style="margin-top: 2px;">
+                    <div class="layui-upload-list" id="demoList6"></div>
+                    </blockquote>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-input-block">
+                    <button lay-submit lay-filter="submit" class="layui-btn layui-btn-normal" id="testListAction">提交</button>
+                    <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                </div>
+            </div>
+        </form>
+</body>
+<script th:src="@{/static/layui/2.5.4/lay/modules/jquery.js}"></script>
+<script type="text/javascript" th:src="@{/static/layui/2.5.4/layui.js}"></script>
+<script type="text/javascript">
+        layui.use(['form','layer','layedit','laydate','upload'], function() {
+            var form = layui.form,
+            layer = parent.layer === undefined ? layui.layer : top.layer,
+                laypage = layui.laypage,
+                upload = layui.upload,
+                layedit = layui.layedit,
+                laydate = layui.laydate,
+                $ = layui.jquery;
+
+            // //上传缩略图
+        var demoListView = $('#demoList'),
+            uploadListIns = upload.render({
+                elem: '#test2'
+                ,url: '/admin/news/save'
+                ,field: 'File'
+                ,accept: 'images'  //指定允许上传时校验的文件类型
+                ,multiple: true //是否允许多文件上传。设置 true即可开启
+                ,auto: false
+                ,choose: function(obj){
+                    var files = this.files = obj.pushFile(); //将每次选择的文件追加到文件队列
+                    //读取本地文件
+                    obj.preview(function(index, file, result){
+                        var tr = $(['<tr id="upload-'+ index +'">'
+                            ,'<td><img src='+result+' style="width:60px;height:60px"></td>'
+                            ,'<td>'+ (file.size/1014).toFixed(1) +'kb</td>'
+                            ,'<td>等待上传</td>'
+                            ,'<td>'
+//             ,'<button class="layui-btn layui-btn-mini demo-reload layui-hide">重传</button>'
+                            ,'<button class="layui-btn layui-btn-mini layui-btn-danger demo-delete">删除</button>'
+                            ,'</td>'
+                            ,'</tr>'].join(''));
+                        //单个重传
+                        tr.find('.demo-reload').on('click', function(){
+                            obj.upload(index, file);
+                        });
+                        //删除
+                        tr.find('.demo-delete').on('click', function(){
+                            delete files[index]; //删除对应的文件
+                            tr.remove();
+                            uploadListIns.config.elem.next()[0].value = ''; //清空 input file 值，以免删除后出现同名文件不可选
+                        });
+
+                        demoListView.append(tr);
+                    });
+                }
+                ,done: function(res, index, upload){
+                    if(res.img != ''){
+
+                        var tr = demoListView.find('tr#upload-'+ index),tds = tr.children();
+                        tds.eq(2).html('<span style="color: #5FB878;">上传成功</span>');
+                        tds.eq(3).html(''); //清空操作
+                        var str = '<input type="hidden" name="photo[]" value='+res.img+'>';
+                        $('#demoList').append(str);
+                        return delete this.files[index]; //删除文件队列已经上传成功的文件
+                    }
+                    this.error(index, upload);
+                }
+                ,error: function(index, upload){
+                    var tr = demoListView.find('tr#upload-'+ index)
+                        ,tds = tr.children();
+                    tds.eq(2).html('<span style="color: #FF5722;">上传失败</span>');
+                    tds.eq(3).find('.demo-reload').removeClass('layui-hide'); //显示重传
+                }
+            });
+
+
+            //上传视频
+            var demoListView3 = $('#demoList3'),
+                uploadListIns3 = upload.render({
+                    elem: '#test3'
+                    ,url: '/admin/news/save'
+                    ,field: 'File'
+                    ,accept: 'video'  //指定允许上传时校验的文件类型
+                    ,multiple: true //是否允许多文件上传。设置 true即可开启
+                    ,auto: false
+                    ,choose: function(obj){
+                        var files = this.files = obj.pushFile(); //将每次选择的文件追加到文件队列
+                        //读取本地文件
+                        obj.preview(function(index, file, result){
+                            var tr = $(['<tr id="upload-'+ index +'">'
+                                ,'<td><video src='+result+' style="width:60px;height:60px"></td>'
+                                ,'<td>'+ (file.size/1014).toFixed(1) +'kb</td>'
+                                ,'<td>等待上传</td>'
+                                ,'<td>'
+//             ,'<button class="layui-btn layui-btn-mini demo-reload layui-hide">重传</button>'
+                                ,'<button class="layui-btn layui-btn-mini layui-btn-danger demo-delete">删除</button>'
+                                ,'</td>'
+                                ,'</tr>'].join(''));
+                            //单个重传
+                            tr.find('.demo-reload').on('click', function(){
+                                obj.upload(index, file);
+                            });
+                            //删除
+                            tr.find('.demo-delete').on('click', function(){
+                                delete files[index]; //删除对应的文件
+                                tr.remove();
+                                uploadListIns3.config.elem.next()[0].value = ''; //清空 input file 值，以免删除后出现同名文件不可选
+                            });
+
+                            demoListView3.append(tr);
+                        });
+                    }
+                    ,done: function(res, index, upload){
+                        if(res.img != ''){
+                            var tr = demoListView3.find('tr#upload-'+ index),tds = tr.children();
+                            tds.eq(2).html('<span style="color: #5FB878;">上传成功</span>');
+                            tds.eq(3).html(''); //清空操作
+                            var str = '<input type="hidden" name="photo[]" value='+res.img+'>';
+                            $('#demoList3').append(str);
+                            return delete this.files[index]; //删除文件队列已经上传成功的文件
+                        }
+                        this.error(index, upload);
+                    }
+                    ,error: function(index, upload){
+                        var tr = demoListView3.find('tr#upload-'+ index)
+                            ,tds = tr.children();
+                        tds.eq(2).html('<span style="color: #FF5722;">上传失败</span>');
+                        tds.eq(3).find('.demo-reload').removeClass('layui-hide'); //显示重传
+                    }
+                });
+/*附件上传开始*/
+            var demoListView6 = $('#demoList6')
+                ,uploadListIns6 = upload.render({
+                elem: '#test6'
+                ,url: '/admin/news/save'
+                ,field: 'File'
+                ,accept: 'file'
+                ,multiple: true
+                ,auto: false
+                ,choose: function(obj){
+                    var files = this.files = obj.pushFile(); //将每次选择的文件追加到文件队列
+                    //读取本地文件
+                    obj.preview(function(index, file, result){
+                        var tr = $(['<tr id="upload-'+ index +'">'
+                            ,'<td>'+ file.name +'</td>'
+                            ,'<td>'+ (file.size/1014).toFixed(1) +'kb</td>'
+                            ,'<td>等待上传</td>'
+                            ,'<td>'
+                            ,'<button class="layui-btn layui-btn-xs layui-btn-danger demo-delete">删除</button>'
+                            ,'</td>'
+                            ,'</tr>'].join(''));
+
+                        //删除
+                        tr.find('.demo-delete').on('click', function(){
+                            delete files[index]; //删除对应的文件
+                            tr.remove();
+                            uploadListIns6.config.elem.next()[0].value = ''; //清空 input file 值，以免删除后出现同名文件不可选
+                        });
+
+                        demoListView6.append(tr);
+                    });
+                }
+                ,done: function(res, index, upload){
+                    if(res.code == 0){ //上传成功
+                        var tr = demoListView6.find('tr#upload-'+ index)
+                            ,tds = tr.children();
+                        tds.eq(2).html('<span style="color: #5FB878;">上传成功</span>');
+                        tds.eq(3).html(''); //清空操作
+                        return delete this.files[index]; //删除文件队列已经上传成功的文件
+                    }
+                    this.error(index, upload);
+                }
+                ,error: function(index, upload){
+                    var tr = demoListView6.find('tr#upload-'+ index)
+                        ,tds = tr.children();
+                    tds.eq(2).html('<span style="color: #FF5722;">上传失败</span>');
+                    tds.eq(3).find('.demo-reload').removeClass('layui-hide'); //显示重传
+                }
+            });
+
+            /*结束*/
+
+
+
+
+
+
+        layedit.set({
+            uploadImage : {
+                url : "/admin/news/save",
+                type: 'POST'
+            }
+        });
+
+        //构建一个默认的编辑器
+        var editIndex = layedit.build('news_content', {
+            tool: [
+                'strong' //加粗
+                ,'italic' //斜体
+                ,'underline' //下划线
+                ,'del' //删除线
+                ,'|' //分割线
+                ,'left' //左对齐
+                ,'center' //居中对齐
+                ,'right' //右对齐
+                ,'link' //超链接
+                ,'unlink' //清除链接
+                ,'image' //插入图片
+                ,'face' //表情
+                ,'help' //帮助
+            ]
+            ,height: 200
+            ,width:200
+        })
+
+        //用于同步编辑器内容到textarea
+        layedit.sync(editIndex);
+
+        form.on('submit(submit)',function (data) {
+            var fd = new FormData();
+            var formData = new FormData($( "#userForm" )[0]);
+            formData.set("content", layedit.getContent(editIndex).split('<audio controls="controls" style="display: none;"></audio>')[0]);
+            $.ajax({
+                    url:'/admin/news/save',
+                    data:8888,       //经测试通过可以传过去两个字段名
+                    dataType:'text',     //通过post请求提交后返回的是文本格式，然后进行判断返回的值决定跳转
+                    contentType: false,
+                    processData: false,
+                    type:'post',
+                    // content : layedit.getContent(editIndex).split('<audio controls="controls" style="display: none;"></audio>')[0]), //文章内容
+                    success:function (data) {
+                        if (data == '1'){
+                            //location.href = "index.jsp";
+                            layer.msg('编辑成功');
+                            var index = parent.layer.getFrameIndex(window.name); //先得到当前iframe层的索引
+                            setTimeout(function () {
+                                parent.layer.close(index);
+                                //刷新父级数据表格
+                                parent.layui.table.reload('demoId',{page:{curr:1}});
+                            }, 1000);
+                        }else{
+                            //location.href = "login.jsp";
+                            layer.msg('编辑失败');
+                        }
+                    }
+                })
+                return false;
+            })
+        });
+</script>
+
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<!--suppress ALL-->
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>新闻页面展示</title>
+    <style>
+        input {
+            border: none;
+        }
+        #titile {
+            margin-left: 600px;
+            font-size: 30px;
+        }
+    </style>
+    <style>
+        .table {
+            display: table;
+            table-layout: fixed;
+            height: 400px;
+            margin: 0 auto;
+        }
+        .table-cell {
+            display: table-cell;
+            text-align: center;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<link rel="stylesheet" th:href="@{/static/layui/2.5.4/css/layui.css}" media="all"/>
+<link rel="stylesheet" th:href="@{/static/layui/2.5.4/css/index.css}"/>
+<body>
+<div id="titile"> <span th:text="${news?.title}"></span></div>
+<div class="layui-form">
+    <table class="layui-table">
+        <colgroup>
+            <col width="400">
+            <col width="300">
+            <col>
+        </colgroup>
+        <thead>
+        <tr>
+            <th>标题 : <span th:text="${news?.title}"></span></th>
+            <th>新闻类型：<span th:text="${news?.newsType}"></span></th>
+            <th>作者：<span th:text="${news?.author}"></span></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>新闻编码：<span th:text="${news?.uuid}"></span></td>
+            <td>浏览量：<span th:text="${news?.viewCount}"></span></td>
+            <td>信息状态：<span th:text="${news?.infoState}"></span></td>
+        </tr>
+        <tr>
+            <td>最后浏览时间：<span th:text="${#dates.format(news?.viewDatetime, 'yyyy-MM-dd')}"></span></td>
+            <td>发布时间：<span th:text="${#dates.format(news?.publishTime, 'yyyy-MM-dd')}"></span></td>
+            <td>失效时间：<span th:text="${#dates.format(news?.invalidDate, 'yyyy-MM-dd')}"></span></td>
+
+        </tr>
+        <tr>
+            <td>信息来源：<span th:text="${news?.infoSource}"></span></td>
+            <td>是否删除：<span th:text="${news?.deleted == '1' ? '已删除':'未删除'}"></span></td>
+            <td>摘要：<span th:text="${news?.summary}"></span></td>
+        </tr>
+        <tr>
+            <td><img th:src="${news?.imagePath}"  id="img"></td>
+            <td colspan="2">主图说明：<span th:text="${news?.imageMemo}"></span></td>
+
+        </tr>
+        <tr>
+            <td><video th:src="${news?.videoPath}" height="100px" width="100px" id="video"></video></td>
+            <td colspan="2">视频说明：<span th:text="${news?.videoDesc}"></span></td>
+        </tr>
+        </tbody>
+    </table>
+    <div>新闻内容：<span th:utext="${news?.content}"></span></div>
+</div>
+</body>
+<script th:src="@{/static/layui/2.5.4/lay/modules/jquery.js}"></script>
+<script type="text/javascript" th:src="@{/static/layui/2.5.4/layui.js}"></script>
+<script th:src="@{/static/layui/2.5.4/index.js}"></script>
+<script th:src="@{/static/layui/2.5.4/cache.js}"></script>
+<script>
+    layui.use('layer', function(){ //独立版的layer无需执行这一句
+        var $ = layui.jquery, layer = layui.layer; //独立版的layer无需执行这一句
+
+        $('#video').click(function () {
+            var url = $('#video')[0].src;
+            var html = '<div class="wrap">';
+            html += '<video  height="500" controls autobuffer>';
+            html += '<source src="'+url+'" type="video/mp4" />';
+            html += '<source src="'+url+'" type="video/ogg" />';
+            html += '<source src="'+url+'" type="video/webm" />';
+            html += '</video>';
+            html += '</div>';
+            //弹出层
+            layer.open({
+                type: 1,
+                skin: 'layui-layer-rim', //加上边框
+                area: ['100%', '100%'],
+                title: "视频预览",
+                content: html
+            });
+        });
+
+
+        $('#img').click(function () {
+            var url = $('#img')[0].src;
+            var html = '<div class="wrap table">';
+            html += '<div class="table-cell">';
+            html += '<img src="'+url+'">';
+            html += '</div>';
+            html += '</div>';
+            //弹出层
+            layer.open({
+                type: 1,
+                skin: 'layui-layer-rim', //加上边框
+                area: ['100%', '100%'],
+                title: "图片预览",
+                content: html
+            });
+        });
+
+
+    })
+
+</script>
+</html>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:cache="http://www.springframework.org/schema/cache"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xmlns:jee="http://www.springframework.org/schema/jee" xmlns:lang="http://www.springframework.org/schema/lang"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:task="http://www.springframework.org/schema/task" xmlns:tx="http://www.springframework.org/schema/tx" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd  
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd  
+        http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache.xsd  
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd  
+        http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd  
+        http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee.xsd  
+        http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang.xsd
+        http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task.xsd
+        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd  
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+	>
+       
+   	<!-- 扫描包 -->
+	<context:component-scan base-package="org.jecklove" >
+		<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+	</context:component-scan>
+
+<!--	引入验证码配置文件-->
+	<import resource="spring-kaptcha.xml"/>
+	<!--导入连接池配置文件-->
+	<import resource="spring-druid.xml"/>
+
+	<!-- 文件上传的解析器 -->
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<!-- 上传图片的最大尺寸 10M-->
+		<property name="maxUploadSize" value="10485760"></property>
+		<!-- 默认编码 -->
+		<property name="defaultEncoding" value="utf-8"></property>
+		<property name="uploadTempDir" value="upload"></property>
+	</bean>
+
+	<!--集成mybatis框架-->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="typeAliasesPackage" value="org.jecklove.entity" />
+		<property name="mapperLocations" value="classpath*:mapping/*.xml" />
+		<property name="configuration" >
+			<bean class="org.apache.ibatis.session.Configuration">
+				<!--                配置驼峰式命名-->
+				<property name="mapUnderscoreToCamelCase" value="true"/>
+				<!--                配置日志-->
+				<property name="logImpl" value="org.apache.ibatis.logging.log4j.Log4jImpl"/>
+			</bean>
+		</property>
+		<property name="plugins">
+			<array>
+				<bean class="com.github.pagehelper.PageInterceptor">
+					<property name="properties">
+						<props>
+							<!--数据库类型-->
+							<prop key="helperDialect">mysql</prop>
+							<!--页码超出范围自动修正-->
+							<prop key="reasonable">true</prop>
+						</props>
+					</property>
+				</bean>
+			</array>
+		</property>
+
+	</bean>
+
+	<!--5.配置sqlSessionTemplate-->
+	<bean id="sqlSessionTemplate" class="org.mybatis.spring.SqlSessionTemplate">
+		<constructor-arg name="sqlSessionFactory" ref="sqlSessionFactory" />
+	</bean>
+ 
+ 	<!-- 配置事务管理 -->  
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>   
+   
+    <!-- 配置事务通知 -->
+    <!-- 定义不同的方法使用不同的事务处理 -->
+  	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="insert*" />
+			<tx:method name="update*" />
+			<tx:method name="delete*" />
+			<tx:method name="*" read-only="true" />
+		</tx:attributes>
+	</tx:advice>
+   
+    <!-- 配置aop事务 -->
+    <aop:config>
+		<aop:pointcut id="txPointcut" expression="execution(* org.jecklove.service.*Service.*(..)))" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="txPointcut" />
+	</aop:config>
+	
+</beans>
